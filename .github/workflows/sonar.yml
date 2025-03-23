@@ -22,7 +22,7 @@ jobs:
 
       - name: Build Java project with Maven
         run: mvn clean compile
-        working-directory: auth-api
+        working-directory: users-api
 
       - name: Run SonarQube analysis
         uses: SonarSource/sonarqube-scan-action@v4
@@ -31,4 +31,4 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         with:
           args: >
-            -Dsonar.java.binaries=auth-api/target/classes
+            -Dsonar.java.binaries=users-api/target/classes
