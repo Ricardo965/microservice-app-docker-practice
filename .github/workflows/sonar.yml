@@ -46,7 +46,13 @@ jobs:
       ### 📌 2️⃣ Construcción de los microservicios
 
       # 🟡 Compilar auth-api (Go)
-      - name: 🛠️ Compilar auth-api
+      - name: 🔧 Configurar Go Modules
+        run: |
+          cd auth-api
+          go mod init auth-api || true  # Evita error si ya existe
+          go mod tidy  # Descarga dependencias
+
+      - name: 🚀 Compilar Go
         run: go build -o auth-api/auth-api auth-api/main.go
 
       # 🔵 Instalar dependencias y compilar frontend
