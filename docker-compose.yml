@@ -1,0 +1,84 @@
+networks:
+  microservice-network:
+    driver: bridge
+
+services:
+  redis:
+    image: redis:7.0
+    container_name: redis-container
+    networks:
+      - microservice-network
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  auth-api:
+    build:
+      context: ./auth-api
+    container_name: auth-api-container
+    networks:
+      - microservice-network
+    environment:
+      - JWT_SECRET=PRFT
+      - AUTH_API_PORT=8000
+      - USERS_API_ADDRESS=http://users-api-container:8083
+    ports:
+      - "8000:8000"
+
+  users-api:
+    build:
+      context: ./users-api
+    container_name: users-api-container
+    networks:
+      - microservice-network
+    environment:
+      - JWT_SECRET=PRFT
+      - SERVER_PORT=8083
+    ports:
+      - "8083:8083"
+
+  todos-api:
+    build:
+      context: ./todos-api
+    container_name: todos-api-container
+    networks:
+      - microservice-network
+    environment:
+      - JWT_SECRET=PRFT
+      - TODO_API_PORT=8082
+      - REDIS_HOST=redis-container
+      - REDIS_PORT=6379
+      - REDIS_CHANNEL=todos_channel
+    ports:
+      - "8082:8082"
+
+  log-message-processor:
+    build:
+      context: ./log-message-processor
+    container_name: log-message-processor-container
+    networks:
+      - microservice-network
+    environment:
+      - REDIS_HOST=redis-container
+      - REDIS_PORT=6379
+      - REDIS_CHANNEL=log_channel
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: frontend-container
+    networks:
+      - microservice-network
+    environment:
+      - PORT=8080
+      - AUTH_API_ADDRESS=http://auth-api-container:8000
+      - TODOS_API_ADDRESS=http://todos-api-container:8082
+    ports:
+      - "8080:8080"
