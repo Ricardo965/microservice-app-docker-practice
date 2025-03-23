@@ -34,7 +34,7 @@ jobs:
       - name: 🔧 Instalar Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.6"
+          python-version: "3.8"
 
       # ⚫ Configurar Java para users-api
       - name: 🔧 Instalar OpenJDK 8
