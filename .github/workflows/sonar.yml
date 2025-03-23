@@ -1,0 +1,94 @@
+name: Build and Analyze
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build and Analyze
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout del código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Necesario para mejor análisis de SonarQube
+
+      ### 📌 1️⃣ Instalación de dependencias según cada microservicio
+
+      # 🟡 Configurar Go para auth-api
+      - name: 🔧 Instalar Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.18.2"
+
+      # 🔵 Configurar Node.js para frontend y todos-api
+      - name: 🔧 Instalar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "8.17.0"
+
+      # 🔴 Configurar Python para log-message-processor
+      - name: 🔧 Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.6"
+
+      # ⚫ Configurar Java para users-api
+      - name: 🔧 Instalar OpenJDK 8
+        uses: actions/setup-java@v8
+        with:
+          distribution: "temurin"
+          java-version: "8"
+
+      ### 📌 2️⃣ Construcción de los microservicios
+
+      # 🟡 Compilar auth-api (Go)
+      - name: 🛠️ Compilar auth-api
+        run: go build -o auth-api/auth-api auth-api/main.go
+
+      # 🔵 Instalar dependencias y compilar frontend
+      - name: 🛠️ Instalar dependencias y compilar frontend
+        run: |
+          cd frontend
+          npm install
+          npm run build
+
+      # 🔵 Instalar dependencias y compilar todos-api
+      - name: 🛠️ Instalar dependencias y compilar todos-api
+        run: |
+          cd todos-api
+          npm install
+
+      # 🔴 Instalar dependencias y compilar log-message-processor (Python)
+      - name: 🛠️ Instalar dependencias para log-message-processor
+        run: |
+          cd log-message-processor
+          pip install -r requirements.txt
+
+      # ⚫ Compilar users-api (Java)
+      - name: 🛠️ Compilar users-api con Maven
+        run: mvn clean install -DskipTests
+        working-directory: users-api
+
+      ### 📌 3️⃣ Ejecución de SonarQube
+      - name: 🚀 Ejecutar SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@v4
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          args: >
+            -Dsonar.projectKey=Ricardo965_microservice-app-docker-practice
+            -Dsonar.sources=.
+            -Dsonar.java.binaries=users-api/target/classes
+            -Dsonar.exclusions=**/node_modules/**,**/test/**,**/*.png,**/*.svg
+
+      # Descomentar si quieres bloquear el pipeline si falla la Quality Gate
+      # - name: ⛔ Verificar Quality Gate
+      #   uses: SonarSource/sonarqube-quality-gate-action@v1
+      #   timeout-minutes: 5
+      #   env:
+      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
