@@ -44,6 +44,9 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          args: >
+            -Dsonar.java.binaries=target/classes
 
       # (Opcional) ✅ 6. Falla el pipeline si la Quality Gate no pasa
       # - name: 🚨 Check SonarQube Quality Gate
