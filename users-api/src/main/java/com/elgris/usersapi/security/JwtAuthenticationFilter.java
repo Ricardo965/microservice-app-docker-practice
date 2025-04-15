@@ -27,6 +27,14 @@ public class JwtAuthenticationFilter extends GenericFilterBean {
         final HttpServletRequest request = (HttpServletRequest) req;
         final HttpServletResponse response = (HttpServletResponse) res;
         final String authHeader = request.getHeader("authorization");
+        final String path = request.getRequestURI();
+
+        // Excluir endpoints públicos
+        if (path.equals("/metrics") || path.equals("/health") ||
+                path.equals("/info") || path.equals("/prometheus")) {
+            chain.doFilter(req, res);
+            return;
+        }
 
         if ("OPTIONS".equals(request.getMethod())) {
             response.setStatus(HttpServletResponse.SC_OK);
@@ -35,7 +43,8 @@ public class JwtAuthenticationFilter extends GenericFilterBean {
         } else {
 
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                throw new ServletException("Missing or invalid Authorization header");
+                System.out.println("Path: " + path);
+                throw new ServletException("Missing or invalid Authorization header" + " Path: " + path);
             }
 
             final String token = authHeader.substring(7);

@@ -25,6 +25,7 @@ services:
     environment:
       - JWT_SECRET=PRFT
       - AUTH_API_PORT=8000
+      - ZIPKIN_URL=http://zipkin:9411/
       - USERS_API_ADDRESS=http://users-api-container:8083
     ports:
       - "8000:8000"
@@ -38,6 +39,7 @@ services:
     environment:
       - JWT_SECRET=PRFT
       - SERVER_PORT=8083
+      - ZIPKIN_URL=http://zipkin:9411/
     ports:
       - "8083:8083"
 
@@ -52,6 +54,7 @@ services:
       - TODO_API_PORT=8082
       - REDIS_HOST=redis-container
       - REDIS_PORT=6379
+      - ZIPKIN_URL=http://zipkin:9411/
       - REDIS_CHANNEL=todos_channel
     ports:
       - "8082:8082"
@@ -66,6 +69,7 @@ services:
       - REDIS_HOST=redis-container
       - REDIS_PORT=6379
       - REDIS_CHANNEL=log_channel
+      - ZIPKIN_URL=http://zipkin:9411/
     depends_on:
       redis:
         condition: service_healthy
@@ -80,5 +84,51 @@ services:
       - PORT=8080
       - AUTH_API_ADDRESS=http://auth-api-container:8000
       - TODOS_API_ADDRESS=http://todos-api-container:8082
+      - ZIPKIN_URL=http://zipkin:9411/
     ports:
       - "8080:8080"
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: zipkin-container
+    networks:
+      - microservice-network
+    ports:
+      - "9411:9411"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9411/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # --- SERVICIOS DE MONITOREO ---
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus-container
+    networks:
+      - microservice-network
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml # Archivo de configuración
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    depends_on:
+      - redis
+      - auth-api
+      - users-api
+      - todos-api
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana-container
+    networks:
+      - microservice-network
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana # Persistencia de datos
+      - ./datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+    depends_on:
+      - prometheus
+
+volumes:
+  grafana-storage:
